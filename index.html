@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estadística López</title>
+    <!-- Favicon / Page Icon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📊</text></svg>">
+    
+    <!-- PyScript CSS & JS for running Python in the browser -->
+    <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css">
+    <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
+    
+    <!-- Plotly for interactive charts -->
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+
+    <style>
+        body {
+            background-color: #FFF0F5;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #4A0E17;
+            margin: 0;
+            padding: 20px;
+        }
+        h1, h2, h3, h4, h5 {
+            color: #D81B60 !important;
+        }
+        .main-container {
+            display: flex;
+            flex-direction: row-reverse;
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        @media (max-width: 900px) {
+            .main-container { flex-direction: column; }
+        }
+        .content-area {
+            flex: 3;
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0px 4px 15px rgba(0,0,0,0.05);
+        }
+        .control-panel {
+            flex: 1;
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0px 4px 15px rgba(0,0,0,0.05);
+            border: 2px solid #FF69B4;
+        }
+        .metric-card {
+            background-color: #FFE4E1;
+            border: 2px solid #FF69B4;
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 2px 2px 8px rgba(0,0,0,0.05);
+            margin-bottom: 10px;
+            transition: transform 0.2s;
+        }
+        .metric-card:hover {
+            transform: scale(1.03);
+            box-shadow: 4px 4px 12px rgba(216, 27, 96, 0.2);
+        }
+        .metric-title { font-size: 0.9rem; color: #D81B60; font-weight: 600; }
+        .metric-value { font-size: 1.6rem; color: #4A0E17; font-weight: bold; }
+        .logo-container {
+            display: flex;
+            align-items: center;
+            background: linear-gradient(135deg, #FF69B4, #D81B60);
+            padding: 15px 25px;
+            border-radius: 15px;
+            color: white;
+            box-shadow: 0px 4px 15px rgba(216, 27, 96, 0.3);
+            margin-bottom: 25px;
+        }
+        .logo-badge {
+            font-size: 2.2rem;
+            margin-right: 15px;
+            background: white;
+            padding: 10px 15px;
+            border-radius: 50%;
+            color: #D81B60;
+            box-shadow: 0px 2px 5px rgba(0,0,0,0.2);
+        }
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #FFE4E1;
+            padding-bottom: 10px;
+        }
+        .tab-btn {
+            background: #FFE4E1;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            color: #D81B60;
+        }
+        .tab-btn.active {
+            background: #D81B60;
+            color: white;
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        input, select, textarea, button {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            border: 1px solid #FF69B4;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #D81B60;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        button:hover { background-color: #ad1457; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            margin-bottom: 15px;
+        }
+        th, td {
+            border: 1px solid #FFE4E1;
+            padding: 8px;
+            text-align: center;
+        }
+        th { background-color: #FFE4E1; color: #D81B60; }
+    </style>
+
+    <!-- Load PyScript dependencies -->
+    <py-config>
+        packages = ["pandas", "numpy", "scipy", "plotly", "openpyxl"]
+    </py-config>
+</head>
+<body>
+
+<div class="main-container">
+    <!-- Control Panel (Sidebar) -->
+    <div class="control-panel">
+        <div class="logo-container">
+            <div class="logo-badge">📊</div>
+            <div>
+                <h1 style="margin: 0; color: white !important; font-size: 1.5rem;" id="title-text">Estadística López</h1>
+                <p style="margin: 0; font-size: 0.75rem; opacity: 0.9;" id="subtitle-text">Plataforma Inteligente de Análisis</p>
+            </div>
+        </div>
+
+        <label for="lang-select">🌐 Idioma / Language</label>
+        <select id="lang-select" py-change="change_language">
+            <option value="Español">Español</option>
+            <option value="English">English</option>
+        </select>
+
+        <h3 id="panel-title">⚙️ Panel de Control</h3>
+        <hr>
+
+        <h4 id="mgmt-title">📁 Gestión de Datos</h4>
+        <label id="input-method-label">Selecciona método de entrada:</label>
+        <select id="input-method" py-change="toggle_input_method">
+            <option value="manual">Ingreso Manual</option>
+            <option value="file">Cargar Archivo CSV</option>
+        </select>
+
+        <div id="manual-section">
+            <label id="var-type-label">Tipo de variable:</label>
+            <select id="var-type" py-change="toggle_var_type">
+                <option value="num">Numérica</option>
+                <option value="cat">Cualitativa / Ambas (CSV)</option>
+            </select>
+
+            <div id="num-manual-div">
+                <label id="var-name-label">Nombre de la variable:</label>
+                <input type="text" id="manual-var-name" value="Variable1">
+                <label id="vals-label">Valores (separados por comas):</label>
+                <textarea id="manual-vals">12, 15, 14, 18, 22, 19, 25, 30</textarea>
+                <button id="gen-btn" py-click="load_manual_num">Generar Dataset Manual</button>
+            </div>
+
+            <div id="cat-manual-div" style="display: none;">
+                <label id="csv-format-label">Ingresa datos en formato CSV:</label>
+                <textarea id="manual-csv">Edad,Ingreso,Satisfaccion
+25,20000,Alta
+30,25000,Media
+45,40000,Baja</textarea>
+                <button id="load-table-btn" py-click="load_manual_csv">Cargar Tabla Manual</button>
+            </div>
+        </div>
+
+        <div id="file-section" style="display: none;">
+            <label id="upload-label">Cargar archivo CSV:</label>
+            <input type="file" id="csv-file-input" accept=".csv" py-change="load_file_data">
+        </div>
+
+        <hr>
+        <h4 id="adv-title">🛠️ Opciones Avanzadas</h4>
+        <label><input type="checkbox" id="filter-outliers" py-change="update_analysis"> <span id="filter-text">Filtrar atípicos (IQR)</span></label>
+        
+        <div id="population-info" style="margin-top: 15px; font-weight: bold;"></div>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="content-area">
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('desc', this)" id="tab-desc-btn">📊 Descriptiva</button>
+            <button class="tab-btn" onclick="switchTab('norm', this)" id="tab-norm-btn">📋 Normalidad</button>
+            <button class="tab-btn" onclick="switchTab('inf', this)" id="tab-inf-btn">🔬 Inferencial</button>
+            <button class="tab-btn" onclick="switchTab('viz', this)" id="tab-viz-btn">📈 Gráficos</button>
+        </div>
+
+        <!-- TAB 1: DESCRIPTIVA -->
+        <div id="tab-desc" class="tab-content active">
+            <h2 id="desc-header">Estadística Descriptiva</h2>
+            <div id="num-select-container">
+                <label id="select-num-label">Selecciona una variable numérica:</label>
+                <select id="select-num-col" py-change="render_descriptive"></select>
+            </div>
+            <div class="metrics-grid" id="metrics-container"></div>
+            <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                <div id="plot-hist" style="flex: 1; min-width: 300px;"></div>
+                <div id="plot-box" style="flex: 1; min-width: 300px;"></div>
+            </div>
+        </div>
+
+        <!-- TAB 2: NORMALIDAD -->
+        <div id="tab-norm" class="tab-content">
+            <h2 id="norm-header">Pruebas de Normalidad</h2>
+            <div id="normality-results-container"></div>
+        </div>
+
+        <!-- TAB 3: INFERENCIAL -->
+        <div id="tab-inf" class="tab-content">
+            <h2 id="inf-header">Estadística Inferencial</h2>
+            <div id="inferential-container"></div>
+        </div>
+
+        <!-- TAB 4: GRÁFICOS -->
+        <div id="tab-viz" class="tab-content">
+            <h2 id="viz-header">Centro de Visualización Interactiva</h2>
+            <label id="select-viz-label">Selecciona el tipo de gráfico:</label>
+            <select id="viz-type-select" py-change="render_visualization">
+                <option value="hist">Histograma</option>
+                <option value="box">Boxplot</option>
+                <option value="scatter">Dispersión</option>
+                <option value="corr">Matriz de Correlación</option>
+            </select>
+            <div id="viz-plot-container" style="margin-top: 20px;"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Tab Switching Script -->
+<script>
+    function switchTab(tabId, btn) {
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+        document.getElementById('tab-' + tabId).classList.add('active');
+        btn.classList.add('active');
+    }
+</script>
+
+<!-- Python Logic via PyScript -->
+<script type="py">
+import io
+import js
+import pyodide
+import pandas as pd
+import numpy as np
+from scipy import stats
+
+# Global state variables
+global_df = pd.DataFrame({'Variable1': [12, 15, 14, 18, 22, 19, 25, 30]})
+
+TEXTS = {
+    "Español": {
+        "title": "Estadística López", "subtitle": "Plataforma Inteligente de Análisis",
+        "control": "⚙️ Panel de Control", "mgmt": "📁 Gestión de Datos", "input": "Selecciona método de entrada:",
+        "manual": "Ingreso Manual", "file": "Cargar Archivo CSV", "var_type": "Tipo de variable:",
+        "num": "Numérica", "cat": "Cualitativa / Ambas (CSV)", "var_name": "Nombre de la variable:",
+        "vals": "Valores (separados por comas):", "gen": "Generar Dataset Manual", "csv_label": "Ingresa datos en formato CSV:",
+        "load_table": "Cargar Tabla Manual", "adv": "🛠️ Opciones Avanzadas", "filter": "Filtrar atípicos (IQR)",
+        "pop": "Población (N):", "desc": "📊 Descriptiva", "norm": "📋 Normalidad", "inf": "🔬 Inferencial",
+        "viz": "📈 Gráficos", "select_num": "Selecciona una variable numérica:"
+    },
+    "English": {
+        "title": "Lopez Statistics", "subtitle": "Intelligent Analysis Platform",
+        "control": "⚙️ Control Panel", "mgmt": "📁 Data Management", "input": "Select input method:",
+        "manual": "Manual Entry", "file": "Upload CSV File", "var_type": "Variable type:",
+        "num": "Numeric", "cat": "Qualitative / Both (CSV)", "var_name": "Variable name:",
+        "vals": "Values (comma separated):", "gen": "Generate Manual Dataset", "csv_label": "Enter data in CSV format:",
+        "load_table": "Load Manual Table", "adv": "🛠️ Advanced Options", "filter": "Filter outliers (IQR)",
+        "pop": "Population (N):", "desc": "📊 Descriptive", "norm": "📋 Normality", "inf": "🔬 Inferential",
+        "viz": "📈 Charts", "select_num": "Select a numeric variable:"
+    }
+}
+
+def get_current_lang():
+    lang_sel = js.document.getElementById("lang-select").value
+    return TEXTS.get(lang_sel, TEXTS["Español"])
+
+def change_language(event):
+    t = get_current_lang()
+    js.document.getElementById("title-text").innerText = t["title"]
+    js.document.getElementById("subtitle-text").innerText = t["subtitle"]
+    js.document.getElementById("panel-title").innerText = t["control"]
+    js.document.getElementById("mgmt-title").innerText = t["mgmt"]
+    js.document.getElementById("input-method-label").innerText = t["input"]
+    js.document.getElementById("var-type-label").innerText = t["var_type"]
+    js.document.getElementById("var-name-label").innerText = t["var_name"]
+    js.document.getElementById("vals-label").innerText = t["vals"]
+    js.document.getElementById("gen-btn").innerText = t["gen"]
+    js.document.getElementById("csv-format-label").innerText = t["csv_label"]
+    js.document.getElementById("load-table-btn").innerText = t["load_table"]
+    js.document.getElementById("adv-title").innerText = t["adv"]
+    js.document.getElementById("filter-text").innerText = t["filter"]
+    js.document.getElementById("tab-desc-btn").innerText = t["desc"]
+    js.document.getElementById("tab-norm-btn").innerText = t["norm"]
+    js.document.getElementById("tab-inf-btn").innerText = t["inf"]
+    js.document.getElementById("tab-viz-btn").innerText = t["viz"]
+
+def toggle_input_method(event):
+    method = js.document.getElementById("input-method").value
+    if method == "manual":
+        js.document.getElementById("manual-section").style.display = "block"
+        js.document.getElementById("file-section").style.display = "none"
+    else:
+        js.document.getElementById("manual-section").style.display = "none"
+        js.document.getElementById("file-section").style.display = "block"
+
+def toggle_var_type(event):
+    vtype = js.document.getElementById("var-type").value
+    if vtype == "num":
+        js.document.getElementById("num-manual-div").style.display = "block"
+        js.document.getElementById("cat-manual-div").style.display = "none"
+    else:
+        js.document.getElementById("num-manual-div").style.display = "none"
+        js.document.getElementById("cat-manual-div").style.display = "block"
+
+def load_manual_num(event):
+    global global_df
+    name = js.document.getElementById("manual-var-name").value or "Variable1"
+    raw_vals = js.document.getElementById("manual-vals").value
+    try:
+        vals = [float(v.strip()) for v in raw_vals.split(",") if v.strip() != ""]
+        global_df = pd.DataFrame({name: vals})
+        refresh_app()
+    except Exception as e:
+        js.alert(f"Error: {e}")
+
+def load_manual_csv(event):
+    global global_df
+    raw_csv = js.document.getElementById("manual-csv").value
+    try:
+        global_df = pd.read_csv(io.StringIO(raw_csv))
+        refresh_app()
+    except Exception as e:
+        js.alert(f"Error: {e}")
+
+def load_file_data(event):
+    global global_df
+    file_list = js.document.getElementById("csv-file-input").files
+    if file_list.length > 0:
+        file_item = file_list.item(0)
+        # Reading file via FileReader in JS
+        reader = js.FileReader.new()
+        def on_load(e):
+            content = e.target.result
+            global global_df
+            global_df = pd.read_csv(io.StringIO(content))
+            refresh_app()
+        reader.onload = on_load
+        reader.readAsText(file_item)
+
+def get_processed_df():
+    global global_df
+    if global_df is None: return None
+    df = global_df.copy()
+    
+    # Filter outliers if checked
+    if js.document.getElementById("filter-outliers").checked:
+        for col in df.select_dtypes(include=[np.number]).columns:
+            q1, q3 = df[col].quantile(0.25), df[col].quantile(0.75)
+            iqr = q3 - q1
+            df = df[df[col].between(q1 - 1.5 * iqr, q3 + 1.5 * iqr) | df[col].isna()]
+    return df
+
+def refresh_app():
+    df = get_processed_df()
+    if df is not None:
+        t = get_current_lang()
+        js.document.getElementById("population-info").innerText = f"{t['pop']} {len(df)}"
+        
+        # Populate numeric column selectors
+        num_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+        select_elem = js.document.getElementById("select-num-col")
+        select_elem.innerHTML = ""
+        for col in num_cols:
+            opt = js.document.createElement("option")
+            opt.value = col
+            opt.text = col
+            select_elem.appendChild(opt)
+            
+        render_descriptive(None)
+        render_normality(None)
+        render_inferential(None)
+        render_visualization(None)
+
+def render_descriptive(event):
+    df = get_processed_df()
+    if df is None or len(df) == 0: return
+    num_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+    if not num_cols: return
+    
+    selected_col = js.document.getElementById("select-num-col").value
+    if not selected_col or selected_col not in num_cols:
+        selected_col = num_cols[0]
+        
+    s = df[selected_col].dropna()
+    mean, median, std, var = s.mean(), s.median(), s.std(), s.var()
+    mode = s.mode().iloc[0] if not s.mode().empty else 0
+    cv = (std / mean) if mean != 0 else 0
+    q1, q3 = s.quantile(0.25), s.quantile(0.75)
+    iqr = q3 - q1
+
+    # Render metrics cards
+    metrics_html = f"""
+        <div class="metric-card"><div class="metric-title">Media</div><div class="metric-value">{mean:.2f}</div></div>
+        <div class="metric-card"><div class="metric-title">Mediana</div><div class="metric-value">{median:.2f}</div></div>
+        <div class="metric-card"><div class="metric-title">Desv. Est</div><div class="metric-value">{std:.2f}</div></div>
+        <div class="metric-card"><div class="metric-title">CV</div><div class="metric-value">{cv:.2%}</div></div>
+        <div class="metric-card"><div class="metric-title">IQR</div><div class="metric-value">{iqr:.2f}</div></div>
+    """
+    js.document.getElementById("metrics-container").innerHTML = metrics_html
+
+    # Render Plotly Histogram
+    hist_data = [{"x": s.tolist(), "type": "histogram", "marker": {"color": "#FF69B4"}}]
+    hist_layout = {"title": f"Distribución de {selected_col}", "paper_bgcolor": "#FFF0F5", "plot_bgcolor": "#FFF0F5"}
+    js.Plotly.newPlot("plot-hist", js.pyodide.to_js(hist_data), js.pyodide.to_js(hist_layout))
+
+    # Render Plotly Boxplot
+    box_data = [{"y": s.tolist(), "type": "box", "marker": {"color": "#D81B60"}}]
+    box_layout = {"title": f"Boxplot de {selected_col}", "paper_bgcolor": "#FFF0F5", "plot_bgcolor": "#FFF0F5"}
+    js.Plotly.newPlot("plot-box", js.pyodide.to_js(box_data), js.pyodide.to_js(box_layout))
+
+def render_normality(event):
+    df = get_processed_df()
+    if df is None: return
+    num_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+    
+    html = "<table><tr><th>Variable</th><th>Estadístico W</th><th>Valor p</th><th>¿Es Normal? (p > 0.05)</th></tr>"
+    for col in num_cols:
+        s = df[col].dropna()
+        if len(s) >= 3:
+            stat, p = stats.shapiro(s)
+            is_norm = "Sí 🟢" if p > 0.05 else "No 🔴"
+            html += f"<tr><td>{col}</td><td>{stat:.4f}</td><td>{p:.4f}</td><td>{is_norm}</td></tr>"
+    html += "</table>"
+    js.document.getElementById("normality-results-container").innerHTML = html
+
+def render_inferential(event):
+    df = get_processed_df()
+    if df is None: return
+    num_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+    cat_cols = [c for c in df.columns if c not in num_cols]
+    
+    if num_cols and cat_cols:
+        num_c = num_cols[0]
+        cat_c = cat_cols[0]
+        groups = [g[num_c].dropna().tolist() for _, g in df.groupby(cat_c) if len(g[num_c].dropna()) >= 3]
+        if len(groups) >= 2:
+            stat, p = stats.f_oneway(*groups)
+            html = f"<p><b>ANOVA de una vía ({num_c} por {cat_c}):</b></p><p>Estadístico F: {stat:.4f} | Valor p: {p:.4f}</p>"
+            js.document.getElementById("inferential-container").innerHTML = html
+        else:
+            js.document.getElementById("inferential-container").innerHTML = "<p>Se necesitan al menos 2 grupos con 3+ observaciones.</p>"
+
+def render_visualization(event):
+    df = get_processed_df()
+    if df is None: return
+    viz_type = js.document.getElementById("viz-type-select").value
+    num_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+    
+    if viz_type == "hist" and num_cols:
+        s = df[num_cols[0]].dropna()
+        data = [{"x": s.tolist(), "type": "histogram", "marker": {"color": "#FF69B4"}}]
+        js.Plotly.newPlot("viz-plot-container", js.pyodide.to_js(data), js.pyodide.to_js({"paper_bgcolor": "#FFF0F5", "plot_bgcolor": "#FFF0F5"}))
+    elif viz_type == "corr" and len(num_cols) > 1:
+        corr = df[num_cols].corr()
+        data = [{"z": corr.values.tolist(), "x": corr.columns.tolist(), "y": corr.index.tolist(), "type": "heatmap", "colorscale": "RdPu"}]
+        js.Plotly.newPlot("viz-plot-container", js.pyodide.to_js(data), js.pyodide.to_js({"paper_bgcolor": "#FFF0F5", "plot_bgcolor": "#FFF0F5"}))
+
+def update_analysis(event):
+    refresh_app()
+
+# Initial render
+refresh_app()
+</script>
+
+</body>
+</html>
